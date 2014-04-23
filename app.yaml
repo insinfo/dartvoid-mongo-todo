@@ -1,0 +1,46 @@
+application: Vane-Angular-Mongo-Todo
+version: 1
+deploy: true
+pub: true
+dart2js: true 
+
+handlers:
+- url: /todos 
+  handler: GET:todo.dart:Todo.getAll 
+
+- url: /todos 
+  handler: POST:todo.dart:Todo.add
+
+- url: /todos 
+  handler: PUT:todo.dart:Todo.update
+
+- url: /todos 
+  handler: DELETE:todo.dart:Todo.delete 
+  
+# Static content, will be served by your app's Nginx instance 
+- url: /
+  match: postregex
+  static_dir: web
+
+# Equivalent longer config for the Dart handlers above  
+#- url: /todos 
+#  method: GET 
+#  script: todo.dart
+#  handler: Todo.getAll 
+# 
+#- url: /todos 
+#  method: POST 
+#  script: todo.dart
+#  handler: Todo.add 
+#   
+#- url: /todos 
+#  method: PUT 
+#  script: todo.dart
+#  handler: Todo.update 
+#   
+#- url: /todos 
+#  method: DELETE 
+#  script: todo.dart
+#  handler: Todo.delete 
+
+

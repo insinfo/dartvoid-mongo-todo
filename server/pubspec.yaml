@@ -1,0 +1,6 @@
+name: server
+dependencies:
+  vane: 
+    git: https://github.com/DartVoid/Vane
+  uuid: any 
+  
