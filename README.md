@@ -86,6 +86,6 @@ You can also send a pull request if you have any suggestion on how to improve th
 * http://www.ics.uci.edu/~fielding/pubs/dissertation/rest_arch_style.htm
 
 ## Credits
-This demo is loosly based on the todo demo from the Angular Dart reposity 
+This demo is loosly based on the todo demo from the Angular Dart repository 
 that can be found [here](https://github.com/angular/angular.dart/blob/master/example).
 
