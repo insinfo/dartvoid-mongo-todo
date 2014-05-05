@@ -11,7 +11,7 @@ class ItemsBackend {
   void getAll() {
     // Make request to get a list of all todo items
 //    _http.get('http://${appname}.${username}.dartblob.com/todos').then((HttpResponse res) {
-    _http.get('/todos').then((HttpResponse res) {
+    _http.get('/todos/list').then((HttpResponse res) {
       res.data.forEach((item) {
         data.add(new Item.fromJson(item));
       });
@@ -26,7 +26,7 @@ class ItemsBackend {
     
     // Make request to add new item to database
 //    _http.post("http://${appname}.${username}.dartblob.com/todos",
-    _http.post("/todos", 
+    _http.post("/todos/add", 
                 JSON.encode(item)).then((HttpResponse res) {
       // If there were an error, remove it from the list 
       if(res.status != 200) {
@@ -45,7 +45,7 @@ class ItemsBackend {
     
     // Make request to update archive property in database
 //    _http.put("http://${appname}.${username}.dartblob.com/todos",
-    _http.put("/todos", 
+    _http.put("/todos/update", 
               JSON.encode(data[index])).then((HttpResponse res) {
       // If action was not successfull, reset item's state  
       if(res.status == 200) {
@@ -69,7 +69,7 @@ class ItemsBackend {
     
     // Make request to delete item 
 //    _http.delete("http://${appname}.${username}.dartblob.com/todos/${item.id}").then((HttpResponse res) {
-    _http.delete("/todos/${item.id}").then((HttpResponse res) {
+    _http.delete("/todos/delete/${item.id}").then((HttpResponse res) {
       // If action was not successfull, put back item into list again 
       if(res.status != 200) {
         data.insert(index, item);

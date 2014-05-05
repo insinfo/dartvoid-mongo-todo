@@ -1,5 +1,6 @@
 name: server
 dependencies:
-  vane: any
+  bloodless: any
+  mongo_dart: any
   uuid: any 
-  
+
