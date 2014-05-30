@@ -1,6 +1,6 @@
 name: server
 dependencies:
-  redstone: any
+  redstone: '>=0.5.0 <1.0.0'
   mongo_dart: any
   uuid: any 
 
