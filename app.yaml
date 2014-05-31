@@ -1,4 +1,4 @@
-application: Bloodless-Angular-Mongo-Todo
+application: Redstone-Angular-Mongo-Todo
 version: 1
 deploy: true
 pub: true

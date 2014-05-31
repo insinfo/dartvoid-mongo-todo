@@ -3,6 +3,7 @@ import 'dart:async';
 
 import 'package:redstone/server.dart' as app;
 import 'package:mongo_dart/mongo_dart.dart';
+import 'package:connection_pool/connection_pool.dart';
 import 'package:di/di.dart';
 import 'package:logging/logging.dart';
 
@@ -10,31 +11,35 @@ import '../client/web/lib/item.dart';
 
 var logger = new Logger("todo");
 
-class DbConnManager {
+class MongoDbPool extends ConnectionPool<Db> {
 
   String uri;
 
-  DbConnManager(String this.uri);
+  MongoDbPool(String this.uri, int poolSize) : super(poolSize);
 
-  Future<Db> connect() {
-    Db conn = new Db(uri);
-    return conn.open().then((_) => conn);
-  }
-
-  void close(Db conn) {
+  @override
+  void closeConnection(Db conn) {
     conn.close();
   }
 
+  @override
+  Future<Db> openNewConnection() {
+    var conn = new Db(uri);
+    return conn.open().then((_) => conn);
+  }
 }
 
-@app.Interceptor(r'/.+', chainIdx: 0)
-createConn(DbConnManager connManager) {
-  connManager.connect().then((Db dbConn) {
-    app.request.attributes['dbConn'] = dbConn;
-    app.chain.next(() => connManager.close(dbConn));
-  }).catchError((e) {
-    app.chain.interrupt(statusCode: HttpStatus.INTERNAL_SERVER_ERROR, 
-        responseValue: {"error": "DATABASE_UNAVAILABLE"});
+@app.Interceptor(r'/services/.+', chainIdx: 0)
+dbInterceptor(MongoDbPool pool) {
+  pool.getConnection().then((managedConnection) {
+    app.request.attributes["conn"] = managedConnection.conn;
+    app.chain.next(() {
+      if (app.chain.error is ConnectionException) {
+        pool.releaseConnection(managedConnection, markAsInvalid: true);
+      } else {
+        pool.releaseConnection(managedConnection);
+      }
+    });
   });
 }
 
@@ -42,8 +47,8 @@ createConn(DbConnManager connManager) {
 @app.Interceptor(r'/.+', chainIdx: 1)
 debugItems() {
   app.chain.next(() {
-    Db dbConn = (app.request.attributes['dbConn'] as Db);
-    return printItems(dbConn);
+    Db conn = (app.request.attributes['conn'] as Db);
+    return printItems(conn);
   });
 }
 
@@ -53,10 +58,10 @@ class Todo {
   static const String collectionName = "items";
 
   @app.Route('/list')
-  list(@app.Attr() Db dbConn) {
+  list(@app.Attr() Db conn) {
     logger.info("Returing all items");
 
-    var itemsColl = dbConn.collection(collectionName);
+    var itemsColl = conn.collection(collectionName);
       
     itemsColl.find().toList().then((List<Map> items) {
       logger.info("Found ${items.length} item(s)");
@@ -69,14 +74,14 @@ class Todo {
   }
 
   @app.Route('/add', methods: const [app.POST])
-  add(@app.Attr() Db dbConn, @app.Body(app.JSON) Map item) {
+  add(@app.Attr() Db conn, @app.Body(app.JSON) Map item) {
     logger.info("Adding new item");
 
     // Parse item to make sure only objects of type "Item" is accepted 
     var newItem = new Item.fromJson(item);
 
     // Add item to database 
-    var itemsColl = dbConn.collection(collectionName);
+    var itemsColl = conn.collection(collectionName);
       
     itemsColl.insert(newItem.toJson()).then((dbRes) {
       logger.info("Mongodb: $dbRes");
@@ -89,14 +94,14 @@ class Todo {
   }
 
   @app.Route('/update', methods: const [app.POST])
-  update(@app.Attr() Db dbConn, @app.Body(app.JSON) Map item) {
+  update(@app.Attr() Db conn, @app.Body(app.JSON) Map item) {
     // Parse item to make sure only objects of type "Item" is accepted 
     var updatedItem = new Item.fromJson(item);
     
     logger.info("Updating item ${updatedItem.id}");
     
     // Update item in database
-    var itemsColl = dbConn.collection(collectionName);
+    var itemsColl = conn.collection(collectionName);
       
     itemsColl.update({"id": updatedItem.id}, updatedItem.toJson()).then((dbRes) {
       logger.info("Mongodb: ${dbRes}");
@@ -109,11 +114,11 @@ class Todo {
   }
 
   @app.Route('/delete/:id', methods: const [app.DELETE])
-  delete(@app.Attr() Db dbConn, String id) {
+  delete(@app.Attr() Db conn, String id) {
     logger.info("Deleting item $id");
     
     // Remove item from database 
-    var itemsColl = dbConn.collection(collectionName);
+    var itemsColl = conn.collection(collectionName);
       
     itemsColl.remove({"id": id}).then((dbRes) {
       logger.info("Mongodb: $dbRes");
@@ -128,10 +133,10 @@ class Todo {
 }
 
 /// Helper function printing all content of the database collection   
-Future printItems(Db dbConn) {
+Future printItems(Db conn) {
   
   // Fetch all items from database and print to console 
-  var itemsColl = dbConn.collection(Todo.collectionName);
+  var itemsColl = conn.collection(Todo.collectionName);
 
   return itemsColl.find().toList().then((List<Map> items) {
     print("Todo items in the database:");
@@ -151,8 +156,10 @@ main() {
     dbUri = "mongodb://localhost/todo";
   }
 
+  var poolSize = 3;
+
   app.addModule(new Module()
-      ..bind(DbConnManager, toValue: new DbConnManager(dbUri)));
+      ..bind(MongoDbPool, toValue: new MongoDbPool(dbUri, poolSize)));
 
   var portEnv = Platform.environment['PORT'];
 
