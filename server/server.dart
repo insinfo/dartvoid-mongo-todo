@@ -68,7 +68,7 @@ class Todo extends MongoDbService<Item>{
     logger.info("Deleting item $id");
     
     // Remove item from database 
-    return collection.remove({"_id": ObjectId.parse(id)}).then((dbRes) {
+    return remove({"_id": ObjectId.parse(id)}).then((dbRes) {
       logger.info("Mongodb: $dbRes");
       return "ok";
     }).catchError((e) {
