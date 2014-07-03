@@ -12,10 +12,9 @@ class Item extends Schema {
   @Field()
   bool done;
   
-  @Field()
-  bool archived;
+  Item([this.id, this.text = "", this.done = false]);
   
-  Item([this.id, this.text = "", this.done = false, this.archived = false]);
+  String toString() => "Item($id, $text, $done)";
   
 }
 

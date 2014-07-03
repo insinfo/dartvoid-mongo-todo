@@ -6,7 +6,7 @@ part of main;
 class Todo {
   
   Item newItem;
-  List<Item> items;
+  List<Item> items = [];
   
   ItemsBackend _items;
 
@@ -16,6 +16,8 @@ class Todo {
     // Get all todo items from server backend 
     getItems();
   }
+
+  bool get isEmpty => newItem.validate() != null;
   
   void getItems() {
     _items.getAll().then((items) => this.items = items);
